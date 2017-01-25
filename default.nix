@@ -2,7 +2,7 @@
 with import <nixpkgs> {};
 
 stdenv.mkDerivation {
-  name = "extract-pixmap";
+  name = "extract-window-icon";
   src = ./.;
   buildInputs =
     [ glib cairo pkgconfig ] 

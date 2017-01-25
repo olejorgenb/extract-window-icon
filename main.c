@@ -1,16 +1,39 @@
+/**
+ * Copyright © 2017 Ole Jørgen Brønner <olejorgenbb@yahoo.no>,
+ *                  Julien Danjou <julien@danjou.info>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ */
+
+/**
+ * Most of this code is lifted/adapted from awesome-wm
+ */
+
 #include <stdio.h>
 #include <string.h>
-#include <xcb/xcb.h>
 
+#include <xcb/xcb.h>
 #include <xcb/xcb_atom.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_util.h>
-/* #include <xcb/shape.h> */
+
 #include <cairo/cairo.h>
 #include <cairo/cairo-xcb.h>
 
-/* Most of this code is lifted/adapted from awesome-wm */
 
 #define MAX(a,b) ((a) < (b) ? (b) : (a))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -19,13 +42,11 @@ typedef int bool;
 #define false 0
 #define true  1
 
-
 #define p_new(type, count)   ((type *)malloc(sizeof(type) * (count)))
 
 
 static xcb_connection_t *connection = NULL;
 static xcb_screen_t *screen = NULL;
-
 static xcb_atom_t _NET_WM_ICON;
 
 
@@ -53,7 +74,7 @@ free_data(void *data)
  * \param height The height of the image
  * \param data The image's data in ARGB format, will be copied by this function.
  */
-cairo_surface_t *
+static cairo_surface_t *
 draw_surface_from_data(int width, int height, uint32_t *data)
 {
     unsigned long int len = width * height;
@@ -131,9 +152,7 @@ ewmh_window_icon_from_reply(xcb_get_property_reply_t *r, uint32_t preferred_size
     return draw_surface_from_data(found_data[0], found_data[1], found_data + 2);
 }
 
-/** Get NET_WM_ICON.
- * \param cookie The cookie.
- */
+/** Get NET_WM_ICON. */
 static cairo_surface_t *
 get_net_wm_icon(xcb_window_t xid, uint32_t preferred_size)
 {
@@ -145,9 +164,6 @@ get_net_wm_icon(xcb_window_t xid, uint32_t preferred_size)
     free(r);
     return surface;
 }
-
-
-/* typedef xcb_get_property_cookie_t property_cookie; */
 
 static xcb_visualtype_t *
 draw_find_visual(const xcb_screen_t *s, xcb_visualid_t visual)
@@ -238,10 +254,9 @@ out:
 /* Cool kids use macros */
 #define INIT_ATOM(name) init_atom(#name, &name)
 
-void
-init_atom(char *name, xcb_atom_t *dest)
+static void
+init_atom(const char *name, xcb_atom_t *dest)
 {
-    /* Latency doesn't really matter here */
     xcb_intern_atom_cookie_t c =
         xcb_intern_atom_unchecked(connection, false, strlen(name), name);
     xcb_intern_atom_reply_t *r =
@@ -250,13 +265,13 @@ init_atom(char *name, xcb_atom_t *dest)
     free(r);
 }
 
-void
+static void
 init_atoms()
 {
     INIT_ATOM(_NET_WM_ICON);
 }
 
-cairo_surface_t *
+static cairo_surface_t *
 get_wm_hints_icon(xcb_window_t xid) {
     xcb_get_property_cookie_t wmh_c =
         xcb_icccm_get_wm_hints_unchecked(connection, xid);
@@ -278,23 +293,36 @@ get_wm_hints_icon(xcb_window_t xid) {
     return result;
 }
 
-int main(int argc, char *argv[]) {
+static bool
+parse_xid(const char *id_str, xcb_window_t *ret)
+{
     xcb_window_t xid = 0;
-    sscanf(argv[1], "0x%lx", &xid);
+    sscanf(id_str, "0x%x", &xid);
     if (!xid)
-        sscanf(argv[1], "%lu", &xid);
+        sscanf(id_str, "%u", &xid);
     if (!xid) {
+        return false;
+    }
+    *ret = xid;
+    return true;
+}
+
+int
+main(int argc, char *argv[])
+{
+    xcb_window_t xid = 0;
+    int screen_nr = -1;
+
+    if(!parse_xid(argv[1], &xid)) {
         fprintf(stderr, "Invalid window id format: %s.", argv[1]);
         exit(1);
     }
 
-    int screen_nr;
-
-    connection = xcb_connect (NULL, &screen_nr);
+    connection = xcb_connect(NULL, &screen_nr);
     screen = xcb_aux_get_screen(connection, screen_nr);
 
-    if ( xcb_connection_has_error ( connection ) ) {
-        fprintf ( stderr, "Failed to open display: %s", "$DISPLAY" );
+    if (xcb_connection_has_error(connection)) {
+        fprintf(stderr, "Failed to open display: %s", "$DISPLAY");
         return 1;
     }
 

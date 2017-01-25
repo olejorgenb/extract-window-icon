@@ -313,8 +313,13 @@ main(int argc, char *argv[])
     xcb_window_t xid = 0;
     int screen_nr = -1;
 
+    if(argc <= 1) {
+        fprintf(stderr, "Expected an X window identifier\n");
+        exit(1);
+    }
+
     if(!parse_xid(argv[1], &xid)) {
-        fprintf(stderr, "Invalid window id format: %s.", argv[1]);
+        fprintf(stderr, "Invalid window id format: %s\n", argv[1]);
         exit(1);
     }
 
@@ -322,7 +327,7 @@ main(int argc, char *argv[])
     screen = xcb_aux_get_screen(connection, screen_nr);
 
     if (xcb_connection_has_error(connection)) {
-        fprintf(stderr, "Failed to open display: %s", "$DISPLAY");
+        fprintf(stderr, "Failed to open display: %s\n", "$DISPLAY");
         return 1;
     }
 
@@ -331,13 +336,24 @@ main(int argc, char *argv[])
     cairo_surface_t *hint_icon = get_wm_hints_icon(xid);
     cairo_surface_t *net_wm_icon = get_net_wm_icon(xid, 64);
 
+    bool found_some_icon = false;
+
     if(hint_icon != NULL) {
-        cairo_surface_write_to_png(hint_icon, "hint-icon.png");
+        char *filename = "wm_hints-icon.png";
+        cairo_surface_write_to_png(hint_icon, filename);
         cairo_surface_destroy(hint_icon);
+        fprintf(stderr, "Found WM_HINTS icon (%s)\n", filename);
+        found_some_icon = true;
     }
 
     if(net_wm_icon != NULL) {
-        cairo_surface_write_to_png(net_wm_icon, "net_wm-icon.png");
+        char *filename = "net_wm_hints-icon.png";
+        cairo_surface_write_to_png(net_wm_icon, filename);
         cairo_surface_destroy(net_wm_icon);
+        fprintf(stderr, "Found _NET_WM_ICON icon (%s)\n", filename);
+        found_some_icon = true;
     }
+
+    if(!found_some_icon)
+        exit(2);
 }

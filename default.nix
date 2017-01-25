@@ -2,9 +2,15 @@
 with import <nixpkgs> {};
 
 stdenv.mkDerivation {
-  name = "extract-window-icon";
+  version = "0.1";
+  name = "extract-window-icon-${version}";
+
   src = ./.;
+
   buildInputs =
     [ glib cairo pkgconfig ] 
     ++ (with xorg; [ xcbutilwm xcbutil libxcb ]);
+
+  installFlags = "PREFIX=\${out}";
+
 }
